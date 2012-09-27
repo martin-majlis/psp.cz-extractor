@@ -1,6 +1,5 @@
 <?php
 require_once('lib.php');
-require_once('globalFunctions.php');
 
 $cache = array(
 	'party' =>  array(), 
@@ -239,6 +238,7 @@ function storeVoting(& $voting, $obdobi)
 function storeVotingResult(&$voting, $obdobi, &$page)
 {
 	global $cache;
+	global $dbh;
 	
 	inf('['.$obdobi['period'].'] Store result: '.$voting['dbId']);
 	
@@ -268,7 +268,7 @@ function storeVotingResult(&$voting, $obdobi, &$page)
 		foreach ($match_members as $member) {
 			$actMember = saveDBMember($member, $obdobi, $actParty);
 
-			$res = mysql_query('INSERT INTO '.DB_TB_RESULT.' (votingId, memberId, vote)
+			$res = $dbh->query('INSERT INTO '.DB_TB_RESULT.' (votingId, memberId, vote)
 					VALUES
 					('.$voting['dbId'].', '.$actMember.', '.votingCodeToNum($member[2]).')'
 			);
@@ -282,20 +282,28 @@ function storeVotingResult(&$voting, $obdobi, &$page)
 
 function saveDBTerm(&$term, $obdobi)
 {
-	$res = mysql_query('INSERT INTO '.DB_TB_MEETING.' 
+	global $dbh;
+
+	$res = $dbh->query('INSERT INTO '.DB_TB_MEETING.' 
 		(period, urlS, urlO) VALUES 
 		('.$obdobi['period'].', '.$term['s'].', '.$term['o'].')');
 	
 	if ($res) { 
-		$term['dbId'] = mysql_insert_id();
+		$term['dbId'] = $dbh->lastInsertId();
 	} else { 
-		$term['dbId'] = mysql_result(mysql_query('SELECT id FROM '.DB_TB_MEETING.' WHERE period='.$obdobi['period'].' AND urlS='.$term['s']), 0, 0);
+		$result = $dbh->query('SELECT id FROM '.DB_TB_MEETING.' WHERE period='.$obdobi['period'].' AND urlS='.$term['s'])->fetchAll(PDO::FETCH_ASSOC);
+		$term['dbId'] = $result['id'];
+	}
+
+	if ( ! $term['dbId'] ) {
+		txtErr('Something went wrong :)', __FILE__, __LINE__);
 	}
 }
 
 function saveDBVoting(&$voting, $obdobi)
 {
-
+	global $dbh;
+	
 	$sql = 'INSERT INTO '.DB_TB_VOTING.' 
 	(period, urlG, urlO, meetingId, pos, name, `date`, total, need, a, n, res) 
 	VALUES 
@@ -304,19 +312,25 @@ function saveDBVoting(&$voting, $obdobi)
 		'.$voting['total'].', '.$voting['need'].', 
 		'.$voting['a'].', '.$voting['n'].', '.$voting['res'].')';
 
-	$res = mysql_query($sql);
+	$res = $dbh->query($sql);
 		
 		
 	if ($res) { 
-		$voting['dbId'] = mysql_insert_id();
+		$voting['dbId'] = $dbh->lastInsertId();
 	} else { 
-		$voting['dbId'] = mysql_result(mysql_query('SELECT id FROM '.DB_TB_VOTING.' WHERE period='.$obdobi['period'].' AND urlG='.$voting['urlG']), 0, 0);
+		$result = $dbh->query('SELECT id FROM '.DB_TB_VOTING.' WHERE period='.$obdobi['period'].' AND urlG='.$voting['urlG']);
+		$voting['dbId'] = $result['id'];
+	}
+
+	if ( ! $voting['dbId'] ) {
+		txtErr('Something went wrong :)', __FILE__, __LINE__);
 	}
 }
 
 function saveDBParty($p, $party)
 {
 	global $cache;
+	global $dbh;
 
 	if (isset($cache['party'][$p][$party])) {
 		return  $cache['party'][$p][$party];
@@ -332,16 +346,21 @@ function saveDBParty($p, $party)
 		$b = rand(0, 15);		
 	}
 	
-	$res = mysql_query('INSERT INTO '.DB_TB_PARTY.' 
+	$res = $dbh->query('INSERT INTO '.DB_TB_PARTY.' 
 		(period, shortcut, color) VALUES
 		('.$p.', "'.$party.'", "'.dechex($r).dechex($r).dechex($g).dechex($g).dechex($b).dechex($b).'")');
 	if ($res) { 
 		inf('Add party: '.$party);
-		$pId = mysql_insert_id();
+		$pId = $dbh->lastInsertId();
 	} else {
-		inf('Already inserted party: '.$party); 
-		$pId = mysql_result(mysql_query('SELECT id FROM '.DB_TB_PARTY.' WHERE period='.$p.' AND shortcut="'.$party.'"'), 0, 0);
+		$result = $dbh->query('SELECT id FROM '.DB_TB_PARTY.' WHERE period='.$p.' AND shortcut="'.$party.'"'); 
+		$pId = $result['id'];
 	}
+
+	if ( ! $pId ) {
+		txtErr('Something went wrong :)', __FILE__, __LINE__);
+	}
+
 	$cache['party'][$p][$party] = $pId;
 	return $pId;	
 }
@@ -349,6 +368,7 @@ function saveDBParty($p, $party)
 function saveDBMember(& $member, $obdobi, $partyId)
 {
 	global $cache;
+	global $dbh;
 
 	if (isset($cache['member'][$obdobi['period']][$member[3]][$partyId])) {
 		$member['dbId'] = $cache['member'][$obdobi['period']][$member[3]][$partyId];
@@ -356,15 +376,20 @@ function saveDBMember(& $member, $obdobi, $partyId)
 	}
 
 	
-	$res = mysql_query('INSERT INTO '.DB_TB_MEMBER.'  
+	$res = $dbh->query('INSERT INTO '.DB_TB_MEMBER.'  
 	 	(period, officialId, partyId, urlO, name) VALUES 
 	 	('.$obdobi['period'].', '.$member[3].', '.$partyId.', '.$member[4].', "'.$member[6].'")');
 	
 	if ( $res ) { 
-		$mId = mysql_insert_id();
+		$mId = $dbh->lastInsertId();
 	} else { 
-		inf('SELECT id FROM '.DB_TB_MEMBER.' WHERE period='.$obdobi['period'].' AND officialId='.$member[2].' AND partyId='.$partyId);
-		$mId = mysql_result(mysql_query('SELECT id FROM '.DB_TB_MEMBER.' WHERE period='.$obdobi['period'].' AND officialId='.$member[3].' AND partyId='.$partyId), 0, 0);
+		$result = $dbh->query('SELECT id FROM '.DB_TB_MEMBER.' WHERE period='.$obdobi['period'].' AND officialId='.$member[3].' AND partyId='.$partyId);
+		$mId = $result['id'];
+	}
+
+	
+	if ( ! $mId ) {
+		txtErr('Something went wrong :)', __FILE__, __LINE__);
 	}
 	
 	$cache['member'][$obdobi['period']][$member[3]][$partyId] = $mId;

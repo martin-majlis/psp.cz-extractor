@@ -1,6 +1,12 @@
 DROP TABLE `parlament_meeting`, `parlament_member`, `parlament_party`, `parlament_result`, `parlament_voting`;
 
-CREATE TABLE `parlament_meeting` (
+-- --------------------------------------------------------
+
+-- 
+-- Table structure for table `parlament_meeting`
+-- 
+
+CREATE TABLE IF NOT EXISTS `parlament_meeting` (
   `id` int(10) unsigned NOT NULL auto_increment,
   `period` tinyint(3) unsigned NOT NULL,
   `urlS` int(10) unsigned NOT NULL,
@@ -16,7 +22,7 @@ CREATE TABLE `parlament_meeting` (
 -- 
 
 
-CREATE TABLE `parlament_member` (
+CREATE TABLE IF NOT EXISTS `parlament_member` (
   `id` int(10) unsigned NOT NULL auto_increment,
   `period` tinyint(3) unsigned NOT NULL,
   `officialId` int(10) unsigned NOT NULL,
@@ -40,7 +46,7 @@ CREATE TABLE `parlament_member` (
 -- Table structure for table `parlament_party`
 -- 
 
-CREATE TABLE `parlament_party` (
+CREATE TABLE IF NOT EXISTS `parlament_party` (
   `id` int(10) unsigned NOT NULL auto_increment,
   `period` tinyint(3) unsigned NOT NULL,
   `shortcut` varchar(10) collate utf8_czech_ci NOT NULL,
@@ -57,7 +63,7 @@ CREATE TABLE `parlament_party` (
 -- Table structure for table `parlament_result`
 -- 
 
-CREATE TABLE `parlament_result` (
+CREATE TABLE IF NOT EXISTS `parlament_result` (
   `id` int(10) unsigned NOT NULL auto_increment,
   `votingId` int(10) unsigned NOT NULL,
   `memberId` int(10) unsigned NOT NULL,
@@ -72,7 +78,7 @@ CREATE TABLE `parlament_result` (
 -- Table structure for table `parlament_voting`
 -- 
 
-CREATE TABLE `parlament_voting` (
+CREATE TABLE IF NOT EXISTS `parlament_voting` (
   `id` int(11) NOT NULL auto_increment,
   `period` tinyint(4) NOT NULL,
   `urlG` int(11) NOT NULL,

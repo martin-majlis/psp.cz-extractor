@@ -11,6 +11,8 @@
  * $Rev: 207 $
  */
 
+require_once('globalFunctions.php');
+
 /**
  * Directory separator.
  */
@@ -32,10 +34,6 @@ if ( ! isset($_SERVER['HTTP_HOST']) ) {
 
 require_once($_SERVER['HTTP_HOST'].'.php');
 
-mysql_connect(DB_HOST, DB_USER, DB_PASSWORD);
-mysql_select_db(DB_DB);
-mysql_query("SET CHARACTER SET utf8");
-
 /**
  * Directory with libraries.
  */ 
@@ -44,6 +42,8 @@ define('DIR_LIB', dirname(__FILE__).DS);
 define('DIR_DATA', DIR_LIB.'data'.DS);
 
 define('DIR_PAGES', DIR_DATA.'pages'.DS);
+
+define('DB_FILE', DIR_DATA . '/parlament.sqlite');
 
 /**
  * Directory with texts.
@@ -378,4 +378,53 @@ if ( ! is_dir(DIR_TEXTS)) {
 	inf("Creating folder " . DIR_TEXTS);
 	mkdir(DIR_TEXTS, 0777, true);
 }
+
+// connect to the database
+
+$dbh = null;
+$dsn = 'mysql:dbname='.DB_DB.';host='.DB_HOST;
+$user = DB_USER;
+$password = DB_PASSWORD;
+
+try {
+	$dbh = new PDO($dsn, $user, $password);
+	inf("Connected to MySQL");
+} catch (PDOException $e) {
+	echo 'Connection failed: ' . $e->getMessage();
+	if ( $e->getCode() == 1049 ) {
+		mysql_connect(DB_HOST, DB_USER, DB_PASSWORD);
+		mysql_query('CREATE DATABASE '.DB_DB);
+		inf("Database " . DB_DB . ' was created');
+	}
+}
+
+if ( ! $dbh ) {	
+	try {
+		$dbh = new PDO($dsn, $user, $password);	
+	} catch (PDOException $e) {
+		inf("Can not connect to MySQL database!");
+		inf($e->getMessage());
+		$dsn = 'sqlite:'.DB_FILE;
+		try {
+			$dbh = new PDO($dsn, $user, $password);
+			inf("Using SQLite database");
+		} catch (PDOException $e) {
+			inf("Can not create SQLite database.");
+			txtErr($e->getMessage());
+		}
+	}
+}
+
+$dbh->query("SET CHARACTER SET utf8");
+
+/* create tables */
+
+$sql_tables = file_get_contents('db.sql');
+$tables = split('--', $sql_tables);
+foreach ($tables as $table) {
+	if ( preg_match('~CREATE~', $table) ) {
+		$dbh->query($table);
+	}
+}
+
 ?>
