@@ -67,6 +67,7 @@ define('DIR_INVALID', DIR_DATA.'invalid'.DS);
 /**
  *  Default time-stamp format for DB
  */
+date_default_timezone_set('Europe/Berlin');
 define('DB_TIME', 'Y-m-d H:i:s');
 
 /**
@@ -389,7 +390,7 @@ function connectDB($obdobi) {
 	global $dbh;
 
 	$dsn = 'mysql:dbname='.DB_DB.'_'.$obdobi.';host='.DB_HOST;
-	$user = DB_USER . 'X';
+	$user = DB_USER;
 	$password = DB_PASSWORD;
 	$using_sqlite = 0;
 	
