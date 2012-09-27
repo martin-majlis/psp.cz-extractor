@@ -6,11 +6,14 @@ $cache = array(
 	'people' => array()
 );
 
-
-function cacheLoad($url)
+function cacheLoad($url, $period)
 {
 	
-	$f = DIR_CACHE_PAGES.encodeUrl($url).'.html';
+	$f = DIR_CACHE_PAGES;
+	if ( $period ) {
+		$f .= DS . $period . DS; 
+	}
+	$f .= encodeUrl($url).'.html';
 	
 	if ( is_file($f) && filesize($f) == 0) { 
 		unlink($f);	 
@@ -46,7 +49,10 @@ function storeVolebiObdobi(& $obdobi)
 {
 	$obdobi['url'] = sprintf(PSP_URL_OBDOBI, $obdobi['url']);
 
-	$page = cacheLoad($obdobi['url']);
+	connectDB($obdobi['period']);
+	mkdir(DIR_CACHE_PAGES . DS . $obdobi['period'] . DS);
+
+	$page = cacheLoad($obdobi['url'], $obdobi['period']);
 	if ($page == '') { 
 		inf('Error URL: '.$obdobi['url']);
 	}	
@@ -97,7 +103,7 @@ function getVotingList(&$terms, & $obdobi)
 
 		inf('['.$obdobi['period'].'] Meeting:'.$term['s'].' ('.$it.' / '.$itC.')'); 
 		$url = sprintf(PSP_URL_SCHUZE, $term['o'], $term['s'], $term['pg']);
-		$page = cacheLoad($url);
+		$page = cacheLoad($url, $obdobi['period']);
 		if ($page == '') { 
 			inf('Error URL: '.$url);
 		}		
@@ -141,7 +147,7 @@ function getVotingList(&$terms, & $obdobi)
 function getVotingListPage(&$term, $obdobi)
 {
 	$url = sprintf(PSP_URL_SCHUZE, $term['o'], $term['s'], $term['pg']);
-	$page = cacheLoad($url);
+	$page = cacheLoad($url, $obdobi['period']);
 	if ($page == '') { 
 		inf('Error URL: '.$url);
 	}
@@ -199,7 +205,7 @@ function storeVoting(& $voting, $obdobi)
 {
 	$url = sprintf(PSP_URL_VOTE, $voting['urlG'], $voting['urlO']);
 	
-	$page = cacheLoad($url);
+	$page = cacheLoad($url, $obdobi['period']);
 	if ($page == '') { 
 		inf('Error URL: '.$url);
 	}	

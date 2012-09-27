@@ -43,7 +43,7 @@ define('DIR_DATA', DIR_LIB.'data'.DS);
 
 define('DIR_PAGES', DIR_DATA.'pages'.DS);
 
-define('DB_FILE', DIR_DATA . '/parlament.sqlite');
+define('DB_FILE', DIR_DATA . '/parlament');
 
 /**
  * Directory with texts.
@@ -381,58 +381,65 @@ if ( ! is_dir(DIR_TEXTS)) {
 
 // connect to the database
 
+
 $dbh = null;
-$dsn = 'mysql:dbname='.DB_DB.';host='.DB_HOST;
-$user = DB_USER . 'X';
-$password = DB_PASSWORD;
-$using_sqlite = 0;
 
-try {
-	$dbh = new PDO($dsn, $user, $password);
-	inf("Connected to MySQL");
-} catch (PDOException $e) {
-	echo 'Connection failed: ' . $e->getMessage();
-	if ( $e->getCode() == 1049 ) {
-		mysql_connect(DB_HOST, DB_USER, DB_PASSWORD);
-		mysql_query('CREATE DATABASE '.DB_DB);
-		inf("Database " . DB_DB . ' was created');
-	}
-}
+function connectDB($obdobi) {
+	
+	global $dbh;
 
-if ( ! $dbh ) {	
+	$dsn = 'mysql:dbname='.DB_DB.'_'.$obdobi.';host='.DB_HOST;
+	$user = DB_USER . 'X';
+	$password = DB_PASSWORD;
+	$using_sqlite = 0;
+	
 	try {
-		$dbh = new PDO($dsn, $user, $password);	
+		$dbh = new PDO($dsn, $user, $password);
+		inf("Connected to MySQL");
 	} catch (PDOException $e) {
-		inf("Can not connect to MySQL database!");
-		inf($e->getMessage());
-		$dsn = 'sqlite:'.DB_FILE;
+		echo 'Connection failed: ' . $e->getMessage();
+		if ( $e->getCode() == 1049 ) {
+			mysql_connect(DB_HOST, DB_USER, DB_PASSWORD);
+			mysql_query('CREATE DATABASE '.DB_DB);
+			inf("Database " . DB_DB . ' was created');
+		}
+	}
+	
+	if ( ! $dbh ) {	
 		try {
-			$dbh = new PDO($dsn, $user, $password);
-			inf("Using SQLite database");
-			$using_sqlite = 1;
+			$dbh = new PDO($dsn, $user, $password);	
 		} catch (PDOException $e) {
-			inf("Can not create SQLite database.");
-			txtErr($e->getMessage());
+			inf("Can not connect to MySQL database!");
+			inf($e->getMessage());
+			$dsn = 'sqlite:'.DB_FILE.'-' . $obdobi.'.sqlite';
+			inf($dsn);
+			try {
+				$dbh = new PDO($dsn, $user, $password);
+				inf("Using SQLite database");
+				$using_sqlite = 1;
+			} catch (PDOException $e) {
+				inf("Can not create SQLite database.");
+				txtErr($e->getMessage(), __FILE__, __LINE__);
+			}
+		}
+	}
+	
+	$dbh->query("SET CHARACTER SET utf8");
+	
+	/* create tables */
+	
+	if ( $using_sqlite ) {
+		$sql_tables = file_get_contents('db-sqlite.sql');
+		$dbh->exec($sql_tables);
+	} else {
+		$sql_tables = file_get_contents('db-mysql.sql');
+		$tables = split('--', $sql_tables);
+		foreach ($tables as $table) {
+			if ( preg_match('~CREATE~', $table) ) {
+				print_r($table);
+				$dbh->query($table);
+			}
 		}
 	}
 }
-
-$dbh->query("SET CHARACTER SET utf8");
-
-/* create tables */
-
-if ( $using_sqlite ) {
-	$sql_tables = file_get_contents('db-sqlite.sql');
-	$dbh->exec($sql_tables);
-} else {
-	$sql_tables = file_get_contents('db-mysql.sql');
-	$tables = split('--', $sql_tables);
-	foreach ($tables as $table) {
-		if ( preg_match('~CREATE~', $table) ) {
-			print_r($table);
-			$dbh->query($table);
-		}
-	}
-}
-
 ?>
