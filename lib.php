@@ -383,8 +383,9 @@ if ( ! is_dir(DIR_TEXTS)) {
 
 $dbh = null;
 $dsn = 'mysql:dbname='.DB_DB.';host='.DB_HOST;
-$user = DB_USER;
+$user = DB_USER . 'X';
 $password = DB_PASSWORD;
+$using_sqlite = 0;
 
 try {
 	$dbh = new PDO($dsn, $user, $password);
@@ -408,6 +409,7 @@ if ( ! $dbh ) {
 		try {
 			$dbh = new PDO($dsn, $user, $password);
 			inf("Using SQLite database");
+			$using_sqlite = 1;
 		} catch (PDOException $e) {
 			inf("Can not create SQLite database.");
 			txtErr($e->getMessage());
@@ -419,11 +421,17 @@ $dbh->query("SET CHARACTER SET utf8");
 
 /* create tables */
 
-$sql_tables = file_get_contents('db.sql');
-$tables = split('--', $sql_tables);
-foreach ($tables as $table) {
-	if ( preg_match('~CREATE~', $table) ) {
-		$dbh->query($table);
+if ( $using_sqlite ) {
+	$sql_tables = file_get_contents('db-sqlite.sql');
+	$dbh->exec($sql_tables);
+} else {
+	$sql_tables = file_get_contents('db-mysql.sql');
+	$tables = split('--', $sql_tables);
+	foreach ($tables as $table) {
+		if ( preg_match('~CREATE~', $table) ) {
+			print_r($table);
+			$dbh->query($table);
+		}
 	}
 }
 

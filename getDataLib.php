@@ -290,8 +290,10 @@ function saveDBTerm(&$term, $obdobi)
 	
 	if ($res) { 
 		$term['dbId'] = $dbh->lastInsertId();
-	} else { 
-		$result = $dbh->query('SELECT id FROM '.DB_TB_MEETING.' WHERE period='.$obdobi['period'].' AND urlS='.$term['s'])->fetchAll(PDO::FETCH_ASSOC);
+	} else {
+		inf('SELECT id FROM '.DB_TB_MEETING.' WHERE period='.$obdobi['period'].' AND urlS='.$term['s']);
+		$result = $dbh->query('SELECT id FROM '.DB_TB_MEETING.' WHERE period='.$obdobi['period'].' AND urlS='.$term['s'])->fetch(PDO::FETCH_ASSOC);
+		print_r($result);
 		$term['dbId'] = $result['id'];
 	}
 
@@ -318,7 +320,7 @@ function saveDBVoting(&$voting, $obdobi)
 	if ($res) { 
 		$voting['dbId'] = $dbh->lastInsertId();
 	} else { 
-		$result = $dbh->query('SELECT id FROM '.DB_TB_VOTING.' WHERE period='.$obdobi['period'].' AND urlG='.$voting['urlG']);
+		$result = $dbh->query('SELECT id FROM '.DB_TB_VOTING.' WHERE period='.$obdobi['period'].' AND urlG='.$voting['urlG'])->fetch(PDO::FETCH_ASSOC);
 		$voting['dbId'] = $result['id'];
 	}
 
@@ -353,7 +355,7 @@ function saveDBParty($p, $party)
 		inf('Add party: '.$party);
 		$pId = $dbh->lastInsertId();
 	} else {
-		$result = $dbh->query('SELECT id FROM '.DB_TB_PARTY.' WHERE period='.$p.' AND shortcut="'.$party.'"'); 
+		$result = $dbh->query('SELECT id FROM '.DB_TB_PARTY.' WHERE period='.$p.' AND shortcut="'.$party.'"')->fetch(PDO::FETCH_ASSOC);
 		$pId = $result['id'];
 	}
 
@@ -375,6 +377,7 @@ function saveDBMember(& $member, $obdobi, $partyId)
 		return  $cache['member'][$obdobi['period']][$member[3]][$partyId];
 	}
 
+	$member[6] = html_entity_decode($member[6], ENT_COMPAT, 'UTF-8');
 	
 	$res = $dbh->query('INSERT INTO '.DB_TB_MEMBER.'  
 	 	(period, officialId, partyId, urlO, name) VALUES 
@@ -383,7 +386,7 @@ function saveDBMember(& $member, $obdobi, $partyId)
 	if ( $res ) { 
 		$mId = $dbh->lastInsertId();
 	} else { 
-		$result = $dbh->query('SELECT id FROM '.DB_TB_MEMBER.' WHERE period='.$obdobi['period'].' AND officialId='.$member[3].' AND partyId='.$partyId);
+		$result = $dbh->query('SELECT id FROM '.DB_TB_MEMBER.' WHERE period='.$obdobi['period'].' AND officialId='.$member[3].' AND partyId='.$partyId)->fetch(PDO::FETCH_ASSOC);
 		$mId = $result['id'];
 	}
 
