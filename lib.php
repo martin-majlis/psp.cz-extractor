@@ -343,9 +343,9 @@ function inf($str)
 	}	
 }
 
-function txtErr($str, $file, $line)
+function txtErr($str, $file, $line, $function)
 {
-	echo $file.':'.$line.NL;
+	echo $file.':'.$line."\t" . $function .NL;
 	if ( ! COMMAND_LINE ) { 
 		echo '<br />';
 	}	

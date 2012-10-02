@@ -73,7 +73,7 @@ function getTermList($page)
 {
 	$res = preg_match_all('~<b><a href="hl.sqw\?o=([0-9]*)\&s=([0-9]*)">~U', $page, $match, PREG_SET_ORDER);
  	if (!$res) { 
-			txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__);
+			txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__, __FUNCTION__);
 	}	
 	$term = array();
 	foreach ($match as $k) { 
@@ -111,7 +111,7 @@ function getVotingList(&$terms, & $obdobi)
 		$res = preg_match('~HREF="phlasa\.sqw\?o=[0-9]+&s=[0-9]+&pg=([0-9]+)" class="last"~U', $page, $match);
 		/* some pages do not contain pager
 		if (!$res) {
-			txtErr('Invalid pattern - extraction of page count', __FILE__, __LINE__);
+			txtErr('Invalid pattern - extraction of page count', __FILE__, __LINE__, __FUNCTION__);
 		}
 		*/
 		$pageCount = max( $match[1], 1);
@@ -157,7 +157,7 @@ function getVotingListPage(&$term, $obdobi)
 	$page, $match, PREG_SET_ORDER);
 
  	if (!$res) { 
-		txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__);
+		txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__, __FUNCTION__);
 	}
 	
 	$it = 0;
@@ -214,14 +214,14 @@ function storeVoting(& $voting, $obdobi)
 
 	
  	if (!$res) { 
-		txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__);
+		txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__, __FUNCTION__);
 	}
 
 	$voting['date'] .= ' '.$match[4].':'.$match[5].':00';
 
 	$res = preg_match('~<p class="counts">Přítomno: <strong>(\d+)</strong>.*Je třeba: <strong>(\d+)</strong></p>~u', $page, $match);
  	if (!$res) { 
-			txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__);
+			txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__, __FUNCTION__);
 	}	
 	$voting['total'] = $match[1];
 	$voting['need'] = $match[2];
@@ -229,7 +229,7 @@ function storeVoting(& $voting, $obdobi)
 	# <p class="counts">Přítomno: <strong>175</strong> <span class="separator">&#124;</span> Je třeba: <strong>88</strong></p>                                <table summary="Celkový výsledek hlasování. U každé varianty je příznak, který je použit u jednotlivých poslanců níže.">                	<tr>    <TD class="first"><span class="flag yes"> A</span> Ano: <strong>53</strong></TD>    <TD><span class="flag no"> N</span> Ne: <strong>26</strong></TD>    <TD><span class="flag not-logged-in"> 0</span> Nepřihlášen</TD>        <TD><span class="flag refrained"> Z</span> Zdržel se</TD>    <td><span class="flag refrained"> X</span> Nehlasoval</td> 
 	$res = preg_match('~<tr>    <TD class="first"><span class="flag yes"> A</span> Ano: <strong>(\d+)</strong></TD>    <TD><span class="flag no"> N</span> Ne: <strong>(\d+)</strong></TD>~u', $page, $match);
  	if (!$res) { 
-		txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__);
+		txtErr('Invalid pattern for url: '.$url, __FILE__, __LINE__, __FUNCTION__);
 	}
 	
 	$voting['a'] = $match[1];
@@ -255,7 +255,7 @@ function storeVotingResult(&$voting, $obdobi, &$page)
 			$page, $match_parties, PREG_SET_ORDER);
 	
  	if (!$res_parties) { 
-		txtErr('Invalid pattern', __FILE__, __LINE__);
+		txtErr('Invalid pattern', __FILE__, __LINE__, __FUNCTION__);
 	}
 		
 	foreach ($match_parties as $party) {
@@ -268,7 +268,7 @@ function storeVotingResult(&$voting, $obdobi, &$page)
 				$party[10], $match_members, PREG_SET_ORDER);
 
 		if (!$res_members) {
-			txtErr('Invalid pattern', __FILE__, __LINE__);
+			txtErr('Invalid pattern', __FILE__, __LINE__, __FUNCTION__);
 		}
 		
 		foreach ($match_members as $member) {
@@ -304,7 +304,7 @@ function saveDBTerm(&$term, $obdobi)
 	}
 
 	if ( ! $term['dbId'] ) {
-		txtErr('Something went wrong :)', __FILE__, __LINE__);
+		txtErr('Something went wrong :)', __FILE__, __LINE__, __FUNCTION__);
 	}
 }
 
@@ -312,26 +312,25 @@ function saveDBVoting(&$voting, $obdobi)
 {
 	global $dbh;
 	
-	$sql = 'INSERT INTO '.DB_TB_VOTING.' 
-	(period, urlG, urlO, meetingId, pos, name, `date`, total, need, a, n, res) 
-	VALUES 
-	('.$obdobi['period'].', '.$voting['urlG'].', '.$voting['urlO'].', '.$voting['term']['dbId'].', '. 
-		$voting['voting'].', "'.$voting['name'].'", "'.$voting['date'].'", 
-		'.$voting['total'].', '.$voting['need'].', 
-		'.$voting['a'].', '.$voting['n'].', '.$voting['res'].')';
+	$sql = 'INSERT INTO '.DB_TB_VOTING.
+		' (period, urlG, urlO, meetingId, pos, name, `date`, total, need, a, n, res) ' . 
+		' VALUES ' . 
+		' ('.$obdobi['period'].', '.$voting['urlG'].', '.$voting['urlO'].', '.$voting['term']['dbId'].', '. 
+		$voting['voting'].', '.$dbh->quote($voting['name']).', "'.$voting['date'].'", '.
+		$voting['total'].', '.$voting['need'].', ' . 
+		$voting['a'].', '.$voting['n'].', '.$voting['res'].')';
 
 	$res = $dbh->query($sql);
-		
-		
+
 	if ($res) { 
 		$voting['dbId'] = $dbh->lastInsertId();
-	} else { 
+	} else {
 		$result = $dbh->query('SELECT id FROM '.DB_TB_VOTING.' WHERE period='.$obdobi['period'].' AND urlG='.$voting['urlG'])->fetch(PDO::FETCH_ASSOC);
 		$voting['dbId'] = $result['id'];
 	}
 
 	if ( ! $voting['dbId'] ) {
-		txtErr('Something went wrong :)', __FILE__, __LINE__);
+		txtErr('Something went wrong - missing ID', __FILE__, __LINE__, __FUNCTION__);
 	}
 }
 
@@ -356,7 +355,7 @@ function saveDBParty($p, $party)
 	
 	$res = $dbh->query('INSERT INTO '.DB_TB_PARTY.' 
 		(period, shortcut, color) VALUES
-		('.$p.', "'.$party.'", "'.dechex($r).dechex($r).dechex($g).dechex($g).dechex($b).dechex($b).'")');
+		('.$p.', '.$dbh->quote($party).', "'.dechex($r).dechex($r).dechex($g).dechex($g).dechex($b).dechex($b).'")');
 	if ($res) { 
 		inf('Add party: '.$party);
 		$pId = $dbh->lastInsertId();
@@ -366,7 +365,7 @@ function saveDBParty($p, $party)
 	}
 
 	if ( ! $pId ) {
-		txtErr('Something went wrong :)', __FILE__, __LINE__);
+		txtErr('Something went wrong - missing ID', __FILE__, __LINE__, __FUNCTION__);
 	}
 
 	$cache['party'][$p][$party] = $pId;
@@ -398,7 +397,7 @@ function saveDBMember(& $member, $obdobi, $partyId)
 
 	
 	if ( ! $mId ) {
-		txtErr('Something went wrong :)', __FILE__, __LINE__);
+		txtErr('Something went wrong  - missing ID', __FILE__, __LINE__, __FUNCTION__);
 	}
 	
 	$cache['member'][$obdobi['period']][$member[3]][$partyId] = $mId;
